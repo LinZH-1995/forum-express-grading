@@ -1,11 +1,9 @@
-<div class="card mb-5 mx-auto" style="max-width: 70%;">
+<div class="card mb-5 mx-auto" style="max-width: 90%;">
   <div class="row g-0">
     <div class="col-md-4">
-      <img class="img-responsive center-block"
-      {{#if user.image}} src="{{user.image}}"
-      {{else}} src="https://via.placeholder.com/300"
-      {{/if}}
-       width="300px" height="300px" style="transition: opacity 0.5s; opacity:0;" onload="this.style.opacity=1;" />
+      <img class="img-responsive center-block" {{#if user.image}} src="{{user.image}}" {{else}}
+        src="https://via.placeholder.com/300" {{/if}} width="300px" height="300px"
+        style="transition: opacity 0.5s; opacity:0;" onload="this.style.opacity=1;" />
     </div>
     <div class="col-md-8">
       <div class="card-body ms-3">
@@ -15,18 +13,63 @@
         <h5 class="card-title fw-bold fs-2 mb-3">{{user.name}}</h5>
         <p class="card-text mb-2">{{user.email}}</p>
         <p class="card-text mb-2">已評論餐廳： {{commentCounts}}</p>
+        <p class="card-text mb-2">已收藏餐廳 {{FavoritedRestaurants.length}}</p>
+        <p class="card-text mb-2">追蹤者 followings： {{Followings.length}}</p>
+        <p class="card-text mb-2">追隨者 followers： {{Followers.length}}</p>
       </div>
     </div>
   </div>
 </div>
 
-<div class="card mb-5 mx-auto" style="max-width: 70%;">
-  <h5 class="card-header fs-6">已評論餐廳 ( {{commentCounts}} )</h5>
-  <div class="card-body row ms-2" style="min-height: 17vh">
-    {{#each restaurants}}
-    <span class="col-md-2 mb-5">
-      <a href="/restaurants/{{this.id}}"><img src="{{this.image}}" width="100px" height="100px" style="transition: opacity 0.5s; opacity:0;" onload="this.style.opacity=1;" alt="image"></a>
-    </span>
+<div class="card mb-3 mx-auto" style="max-width: 90%;">
+  <h5 class="card-header fs-6">已評論餐廳 ( {{commentCounts}} ) - new10</h5>
+  <div class="card-body d-flex flex-wrap" style="height: 133px;">
+    {{#each comment_restaurants}}
+    <div class="me-2">
+      <a href="/restaurants/{{this.id}}"><img src="{{this.image}}" width="100px" height="100px"
+          style="transition: opacity 0.5s; opacity:0;" onload="this.style.opacity=1;" alt="image"></a>
+    </div>
+    {{/each}}
+  </div>
+</div>
+
+<div class="card mb-3 mx-auto" style="max-width: 90%;">
+  <h5 class="card-header fs-6">已收藏餐廳 ( {{FavoritedRestaurants.length}} ) - new10</h5>
+  <div class="card-body d-flex flex-wrap" style="height: 133px;">
+    {{#each FavoritedRestaurants}}
+    <div class="me-2">
+      <a href="/restaurants/{{this.id}}"><img src="{{this.image}}" width="100px" height="100px"
+          style="transition: opacity 0.5s; opacity:0;" onload="this.style.opacity=1;" alt="image"></a>
+    </div>
+    {{/each}}
+  </div>
+</div>
+
+<div class="card mb-3 mx-auto" style="max-width: 90%;">
+  <h5 class="card-header fs-6">追蹤者 followings ( {{Followings.length}} ) - new10</h5>
+  <div class="card-body d-flex flex-wrap" style="height: 133px;">
+    {{#each Followings}}
+    <div class="me-2">
+      <a href="/users/{{this.id}}">
+        <img {{#if this.image}} src="{{this.image}}" {{else}} src="https://via.placeholder.com/100" {{/if}}
+          width="100px" height="100px" style="transition: opacity 0.5s; opacity:0;" onload="this.style.opacity=1;"
+          alt="image">
+      </a>
+    </div>
+    {{/each}}
+  </div>
+</div>
+
+<div class="card mb-5 mx-auto" style="max-width: 90%;">
+  <h5 class="card-header fs-6">追隨者 followers ( {{Followers.length}} ) - new10</h5>
+  <div class="card-body d-flex flex-wrap" style="height: 133px;">
+    {{#each Followers}}
+    <div class="me-2">
+      <a href="/users/{{this.id}}">
+        <img {{#if this.image}} src="{{this.image}}" {{else}} src="https://via.placeholder.com/100" {{/if}}
+        width="100px" height="100px" style="transition: opacity 0.5s; opacity:0;" onload="this.style.opacity=1;" alt="image">
+      </a>
+    </div>
     {{/each}}
   </div>
 </div>

@@ -45,8 +45,16 @@ const userController = {
     try {
       const id = req.params.id
       const userId = req.user?.id
-      const [user, userOfLogin, comments] = await Promise.all([
-        User.findByPk(id, { nest: true, include: [{ model: Comment, include: [Restaurant], separate: true, order: [['createdAt', 'DESC']] }] }),
+      const [user, userOfLogin] = await Promise.all([
+        User.findByPk(id, {
+          nest: true,
+          include: [
+            { model: Comment, include: [Restaurant], separate: true, order: [['createdAt', 'DESC']] },
+            { model: Restaurant, as: 'FavoritedRestaurants' },
+            { model: User, as: 'Followings' },
+            { model: User, as: 'Followers' }
+          ] 
+        }),
         User.findByPk(userId, { raw: true })
       ])
       if (!user) throw new Error("User didn't exist!")
@@ -56,7 +64,11 @@ const userController = {
         const restId = comment.restaurantId
         if (!map.has(restId)) map.set(restId, comment.Restaurant)
       })
-      res.render('users/profile', { user: userData, userOfLogin, commentCounts: map.size, restaurants: Array.from(map.values()) })
+      const FavoritedRestaurants = userData.FavoritedRestaurants.reverse()
+      const Followings = userData.Followings.reverse()
+      const Followers = userData.Followers.reverse()
+      const comment_restaurants = Array.from(map.values()).slice(0, 10)
+      res.render('users/profile', { user: userData, userOfLogin, commentCounts: map.size, comment_restaurants, FavoritedRestaurants, Followings, Followers })
     } catch (err) {
       next(err)
     }
