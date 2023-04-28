@@ -65,8 +65,8 @@ const userController = {
         if (!map.has(restId)) map.set(restId, comment.Restaurant)
       })
       const FavoritedRestaurants = userData.FavoritedRestaurants.reverse()
-      const Followings = userData.Followings.reverse()
-      const Followers = userData.Followers.reverse()
+      const Followings = userData.Followings.reverse().slice(0, 10)
+      const Followers = userData.Followers.reverse().slice(0, 10)
       const comment_restaurants = Array.from(map.values()).slice(0, 10)
       res.render('users/profile', { user: userData, userOfLogin, commentCounts: map.size, comment_restaurants, FavoritedRestaurants, Followings, Followers })
     } catch (err) {
@@ -167,13 +167,19 @@ const userController = {
       const { or, and, gt, lt } = Sequelize.Op
       const users = await User.findAll({
         nest: true,
-        include: [{ model: User, as: 'Followers' }]
+        include: [{ model: User, as: 'Followers' }],
+        attributes: {
+          include: [[Sequelize.fn('COUNT', Sequelize.col('Followers.id')), 'FollowersCounts']]
+        },
+        group: ['id'],
+        includeIgnoreAttributes: false,
+        distinct: true,
+        order: [['FollowersCounts', 'DESC']]
       })
       const userData = users.map(user => {
-        const followerCount = user.Followers.length
         const isFollowed = req.user.Followings.some(follow => follow.id === user.id)
-        return Object.assign(user.toJSON(), { followerCount, isFollowed })
-      }).sort((a, b) => b.followerCount - a.followerCount)
+        return Object.assign(user.toJSON(), { isFollowed })
+      })
       res.render('top-users', { users: userData })
     } catch (err) {
       next(err)
