@@ -47,8 +47,7 @@ const userController = {
       const user = await User.findByPk(id, {
           nest: true,
           include: [
-            {
-              model: Comment, include: [{ model: Restaurant, attributes: ['image', 'id'] }], separate: true, attributes: ['restaurantId'], order: [['createdAt', 'DESC']] },
+            { model: Comment, include: [{ model: Restaurant, attributes: ['image', 'id'] }], separate: true, attributes: ['restaurantId'], order: [['createdAt', 'DESC']] },
             { model: Restaurant, as: 'FavoritedRestaurants', attributes: ['image', 'id'], through: { attributes: [] } },
             { model: User, as: 'Followings', attributes: ['image', 'id'] },
             { model: User, as: 'Followers', attributes: ['image', 'id'] },
@@ -66,6 +65,7 @@ const userController = {
         const restId = comment.restaurantId
         if (!map.has(restId)) map.set(restId, comment.Restaurant)
       })
+      console.log(userData)
       const FavoritedRestaurants = userData.FavoritedRestaurants.slice(0, 10)
       const Followings = userData.Followings.slice(0, 10)
       const Followers = userData.Followers.slice(0, 10)
