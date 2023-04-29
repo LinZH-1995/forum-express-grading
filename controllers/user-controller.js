@@ -43,6 +43,20 @@ const userController = {
 
   getUser: async (req, res, next) => {
     try {
+// SELECT 
+// Comment.restaurant_id AS restaurantId,
+// MAX(Comment.created_at ) AS createdAt,
+// Restaurant.image AS `Restaurant.image`,
+// Restaurant.id AS `Restaurant.id`
+// FROM Comments AS Comment 
+// LEFT JOIN Restaurants AS Restaurant 
+// ON Comment.restaurant_id = Restaurant.id 
+// WHERE Comment.user_id IN (20)
+// GROUP BY restaurantId 
+// ORDER BY createdAt DESC; 
+//--> query Comments and filter the same comments(restaurantId) by GROUP BY
+//--> query the MAX createdAt of comment to find the latest comment
+//--> get the finally data ORDER BY ceartedAt DESC in the end
       const id = req.params.id
       const user = await User.findByPk(id, {
           nest: true,
