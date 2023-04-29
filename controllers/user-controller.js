@@ -44,19 +44,21 @@ const userController = {
   getUser: async (req, res, next) => {
     try {
       const id = req.params.id
-      const userId = req.user?.id
-      const [user, userOfLogin] = await Promise.all([
-        User.findByPk(id, {
+      const user = await User.findByPk(id, {
           nest: true,
           include: [
-            { model: Comment, include: [Restaurant], separate: true, order: [['createdAt', 'DESC']] },
-            { model: Restaurant, as: 'FavoritedRestaurants' },
-            { model: User, as: 'Followings' },
-            { model: User, as: 'Followers' }
-          ] 
-        }),
-        User.findByPk(userId, { raw: true })
-      ])
+            {
+              model: Comment, include: [{ model: Restaurant, attributes: ['image', 'id'] }], separate: true, attributes: ['restaurantId'], order: [['createdAt', 'DESC']] },
+            { model: Restaurant, as: 'FavoritedRestaurants', attributes: ['image', 'id'], through: { attributes: [] } },
+            { model: User, as: 'Followings', attributes: ['image', 'id'] },
+            { model: User, as: 'Followers', attributes: ['image', 'id'] },
+          ],
+          order: [
+            [{ model: Restaurant, as: 'FavoritedRestaurants' }, Favorite, 'createdAt', 'DESC'],
+            [{ model: User, as: 'Followings' }, Followship, 'createdAt', 'DESC'],
+            [{ model: User, as: 'Followers' }, Followship, 'createdAt', 'DESC']
+          ]
+        })
       if (!user) throw new Error("User didn't exist!")
       const userData = user.toJSON()
       const map = new Map()
@@ -64,11 +66,11 @@ const userController = {
         const restId = comment.restaurantId
         if (!map.has(restId)) map.set(restId, comment.Restaurant)
       })
-      const FavoritedRestaurants = userData.FavoritedRestaurants.reverse()
-      const Followings = userData.Followings.reverse().slice(0, 10)
-      const Followers = userData.Followers.reverse().slice(0, 10)
+      const FavoritedRestaurants = userData.FavoritedRestaurants.slice(0, 10)
+      const Followings = userData.Followings.slice(0, 10)
+      const Followers = userData.Followers.slice(0, 10)
       const comment_restaurants = Array.from(map.values()).slice(0, 10)
-      res.render('users/profile', { user: userData, userOfLogin, commentCounts: map.size, comment_restaurants, FavoritedRestaurants, Followings, Followers })
+      res.render('users/profile', { user: userData, userOfLogin: req.user, commentCounts: map.size, comment_restaurants, FavoritedRestaurants, Followings, Followers })
     } catch (err) {
       next(err)
     }
@@ -173,7 +175,6 @@ const userController = {
         },
         group: ['id'],
         includeIgnoreAttributes: false,
-        distinct: true,
         order: [['FollowersCounts', 'DESC']]
       })
       const userData = users.map(user => {
