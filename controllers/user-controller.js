@@ -58,10 +58,10 @@ const userController = {
 //--> query the MAX createdAt of comment to find the latest comment
 //--> get the finally data ORDER BY ceartedAt DESC in the end
       const id = req.params.id
-      const user = await User.findByPk(id, {
+      const [user, comments] = await Promise.all([
+        User.findByPk(id, {
           nest: true,
           include: [
-            { model: Comment, include: [{ model: Restaurant, attributes: ['image', 'id'] }], separate: true, attributes: ['restaurantId'], order: [['createdAt', 'DESC']] },
             { model: Restaurant, as: 'FavoritedRestaurants', attributes: ['image', 'id'], through: { attributes: [] } },
             { model: User, as: 'Followings', attributes: ['image', 'id'] },
             { model: User, as: 'Followers', attributes: ['image', 'id'] },
@@ -71,20 +71,32 @@ const userController = {
             [{ model: User, as: 'Followings' }, Followship, 'createdAt', 'DESC'],
             [{ model: User, as: 'Followers' }, Followship, 'createdAt', 'DESC']
           ]
+        }),
+        Comment.findAndCountAll({
+          raw: true,
+          nest: true,
+          where: { userId: id },
+          include: [{ model: Restaurant, attributes: ['image', 'id'] }],
+          attributes: [[Sequelize.fn('MAX', Sequelize.col('Comment.created_at')), 'createdAt']],
+          group: ['Comment.restaurant_id'],
+          order: [['createdAt', 'DESC']],
+          limit: 10
         })
+      ])
       if (!user) throw new Error("User didn't exist!")
       const userData = user.toJSON()
-      const map = new Map()
-      userData.Comments?.forEach(comment => {
-        const restId = comment.restaurantId
-        if (!map.has(restId)) map.set(restId, comment.Restaurant)
+      res.render('users/profile', { 
+        user: userData, 
+        userOfLogin: req.user, 
+        commentCounts: comments.count.length,
+        commented_restaurants: comments.rows,
+        FavoritedRestaurants: userData.FavoritedRestaurants.slice(0, 10),
+        FavoritedRestaurantsCounts: userData.FavoritedRestaurants.length,
+        Followings: userData.Followings.slice(0, 10),
+        FollowingsCounts: userData.Followings.length,
+        Followers: userData.Followers.slice(0, 10),
+        FollowersCounts: userData.Followers.length
       })
-      console.log(userData)
-      const FavoritedRestaurants = userData.FavoritedRestaurants.slice(0, 10)
-      const Followings = userData.Followings.slice(0, 10)
-      const Followers = userData.Followers.slice(0, 10)
-      const comment_restaurants = Array.from(map.values()).slice(0, 10)
-      res.render('users/profile', { user: userData, userOfLogin: req.user, commentCounts: map.size, comment_restaurants, FavoritedRestaurants, Followings, Followers })
     } catch (err) {
       next(err)
     }
