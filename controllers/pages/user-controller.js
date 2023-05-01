@@ -1,8 +1,8 @@
 const bcrypt = require('bcryptjs')
 
-const { User, Comment, Restaurant, Favorite, Like, Followship } = require('../../models')
+const { User, Comment, Restaurant, Favorite, Like, Followship, Sequelize } = require('../../models')
 
-const Sequelize = require('sequelize')
+// const Sequelize = require('sequelize')
 
 const { localFileHandler, imgurFileHandler } = require('../../helpers/file-helpers.js')
 
@@ -43,20 +43,20 @@ const userController = {
 
   getUser: async (req, res, next) => {
     try {
-// SELECT 
-// Comment.restaurant_id AS restaurantId,
-// MAX(Comment.created_at ) AS createdAt,
-// Restaurant.image AS `Restaurant.image`,
-// Restaurant.id AS `Restaurant.id`
-// FROM Comments AS Comment 
-// LEFT JOIN Restaurants AS Restaurant 
-// ON Comment.restaurant_id = Restaurant.id 
-// WHERE Comment.user_id IN (20)
-// GROUP BY restaurantId 
-// ORDER BY createdAt DESC; 
-//--> query Comments and filter the same comments(restaurantId) by GROUP BY
-//--> query the MAX createdAt of comment to find the latest comment
-//--> get the finally data ORDER BY ceartedAt DESC in the end
+      // SELECT 
+      // Comment.restaurant_id AS restaurantId,
+      // MAX(Comment.created_at ) AS createdAt,
+      // Restaurant.image AS `Restaurant.image`,
+      // Restaurant.id AS `Restaurant.id`
+      // FROM Comments AS Comment 
+      // LEFT JOIN Restaurants AS Restaurant 
+      // ON Comment.restaurant_id = Restaurant.id 
+      // WHERE Comment.user_id IN (20)
+      // GROUP BY restaurantId 
+      // ORDER BY createdAt DESC; 
+      //--> query Comments and filter the same comments(restaurantId) by GROUP BY
+      //--> query the MAX createdAt of comment to find the latest comment
+      //--> get the finally data ORDER BY ceartedAt DESC in the end
       const id = req.params.id
       const [user, comments] = await Promise.all([
         User.findByPk(id, {
@@ -85,9 +85,9 @@ const userController = {
       ])
       if (!user) throw new Error("User didn't exist!")
       const userData = user.toJSON()
-      res.render('users/profile', { 
-        user: userData, 
-        userOfLogin: req.user, 
+      res.render('users/profile', {
+        user: userData,
+        userOfLogin: req.user,
         commentCounts: comments.count.length,
         commented_restaurants: comments.rows,
         FavoritedRestaurants: userData.FavoritedRestaurants.slice(0, 10),
