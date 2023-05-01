@@ -23,6 +23,19 @@ const adminServices = {
     } catch (err) {
       callback(err, null)
     }
+  },
+
+  postRestaurant: async (req, callback) => {
+    try {
+      if (!req.body.name) throw new Error('Restaurant name is required!')
+      const { file } = req
+      // const filePath = await localFileHandler(file)
+      const filePath = await imgurFileHandler(file)
+      const newRestaurant = await Restaurant.create(Object.assign({ image: filePath || null }, req.body))
+      return callback(null, { newRestaurant })
+    } catch (err) {
+      callback(err, null)
+    }
   }
 }
 
