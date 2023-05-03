@@ -9,10 +9,11 @@ const restaurants = require('./modules/restaurants.js')
 const userController = require('../../controllers/apis/user-controller.js')
 
 const { apiErrorHandler } = require('../../middleware/error-handler.js')
+const { jwtAuthenticated, jwtAuthenticatedAdmin } = require('../../middleware/apiAuth.js')
 
-router.use('/admin', admin)
+router.use('/admin', jwtAuthenticated, jwtAuthenticatedAdmin, admin)
 
-router.use('/restaurants', restaurants)
+router.use('/restaurants', jwtAuthenticated, restaurants)
 
 router.post('/signin', passport.authenticate('local', { session: false  }), userController.signIn)
 
