@@ -4,6 +4,8 @@ const { User, Comment, Restaurant, Favorite, Like, Followship, Sequelize } = req
 
 // const Sequelize = require('sequelize')
 
+const userServices = require('../../services/user-services.js')
+
 const { localFileHandler, imgurFileHandler } = require('../../helpers/file-helpers.js')
 
 const userController = {
@@ -11,19 +13,13 @@ const userController = {
     return res.render('signup')
   },
 
-  signUp: async (req, res, next) => {
-    try {
-      if (req.body.password !== req.body.passwordCheck) throw new Error('Passwords do not match!')
-      const user = await User.findOne({ where: { email: req.body.email } })
-      if (user) throw new Error('Email already exists!')
-      const hash = await bcrypt.hash(req.body.password, 10)
-      await User.create({ name: req.body.name, email: req.body.email, password: hash })
+  signUp: (req, res, next) => {
+    userServices.signUp(req, (err, data) => {
+      if (err) return next(err)
+      req.session.createdUser = data.newUser
       req.flash('success_messages', '成功註冊帳號！')
       res.redirect('/signin')
-    } catch (err) {
-      console.log(err)
-      next(err)
-    }
+    })
   },
 
   signInPage: (req, res) => {
@@ -41,204 +37,77 @@ const userController = {
     res.redirect('/signin')
   },
 
-  getUser: async (req, res, next) => {
-    try {
-      // SELECT 
-      // Comment.restaurant_id AS restaurantId,
-      // MAX(Comment.created_at ) AS createdAt,
-      // Restaurant.image AS `Restaurant.image`,
-      // Restaurant.id AS `Restaurant.id`
-      // FROM Comments AS Comment 
-      // LEFT JOIN Restaurants AS Restaurant 
-      // ON Comment.restaurant_id = Restaurant.id 
-      // WHERE Comment.user_id IN (20)
-      // GROUP BY restaurantId 
-      // ORDER BY createdAt DESC; 
-      //--> query Comments and filter the same comments(restaurantId) by GROUP BY
-      //--> query the MAX createdAt of comment to find the latest comment
-      //--> get the finally data ORDER BY ceartedAt DESC in the end
-      const id = req.params.id
-      const [user, comments] = await Promise.all([
-        User.findByPk(id, {
-          nest: true,
-          include: [
-            { model: Restaurant, as: 'FavoritedRestaurants', attributes: ['image', 'id'], through: { attributes: [] } },
-            { model: User, as: 'Followings', attributes: ['image', 'id'] },
-            { model: User, as: 'Followers', attributes: ['image', 'id'] },
-          ],
-          order: [
-            [{ model: Restaurant, as: 'FavoritedRestaurants' }, Favorite, 'createdAt', 'DESC'],
-            [{ model: User, as: 'Followings' }, Followship, 'createdAt', 'DESC'],
-            [{ model: User, as: 'Followers' }, Followship, 'createdAt', 'DESC']
-          ]
-        }),
-        Comment.findAndCountAll({
-          raw: true,
-          nest: true,
-          where: { userId: id },
-          include: [{ model: Restaurant, attributes: ['image', 'id'] }],
-          attributes: [[Sequelize.fn('MAX', Sequelize.col('Comment.created_at')), 'createdAt']],
-          group: ['Comment.restaurant_id'],
-          order: [['createdAt', 'DESC']],
-          limit: 10
-        })
-      ])
-      if (!user) throw new Error("User didn't exist!")
-      const userData = user.toJSON()
-      res.render('users/profile', {
-        user: userData,
-        userOfLogin: req.user,
-        commentCounts: comments.count.length,
-        commented_restaurants: comments.rows,
-        FavoritedRestaurants: userData.FavoritedRestaurants.slice(0, 10),
-        FavoritedRestaurantsCounts: userData.FavoritedRestaurants.length,
-        Followings: userData.Followings.slice(0, 10),
-        FollowingsCounts: userData.Followings.length,
-        Followers: userData.Followers.slice(0, 10),
-        FollowersCounts: userData.Followers.length
-      })
-    } catch (err) {
-      next(err)
-    }
+  getUser: (req, res, next) => {
+    userServices.getUser(req, (err, data) => err ? next(err) : res.render('users/profile', data))
   },
 
-  editUser: async (req, res, next) => {
-    try {
-      const id = req.params.id
-      const userId = req.user?.id
-      if (id !== userId.toString()) return res.redirect(`/users/${req.params.id}`)
-      const user = await User.findByPk(id, { raw: true })
-      if (!user) throw new Error("User didn't exist!")
-      res.render('users/edit', { user })
-    } catch (err) {
-      next(err)
-    }
+  editUser: (req, res, next) => {
+    userServices.editUser(req, (err, data) => {
+      if (err) return next(err)
+      if (data.redirect) return res.redirect(data.redirect)
+      res.render('users/edit', data)
+    })
   },
 
-  putUser: async (req, res, next) => {
-    try {
-      if (!req.body.name) throw new Error('User name is required!')
-      const id = req.params.id
-      const { file } = req
-      const [filePath, user] = await Promise.all([imgurFileHandler(file), User.findByPk(id)])
-      if (!user) throw new Error("User didn't exist!")
-      await user.update(Object.assign({ image: filePath || user.image }, req.body))
+  putUser: (req, res, next) => {
+    userServices.putUser(req, (err, data) => {
+      if (err) return next(err)
+      req.session.editUser = data.editUser
       req.flash('success_messages', '使用者資料編輯成功')
-      res.redirect(`/users/${id}`)
-    } catch (err) {
-      next(err)
-    }
+      res.redirect(`/users/${data.id}`)
+    })
   },
 
-  addFavorite: async (req, res, next) => {
-    try {
-      const userId = req.user.id
-      const restaurantId = req.params.restaurantId
-      const [restaurant, favorite] = await Promise.all([
-        Restaurant.findByPk(restaurantId),
-        Favorite.findOne({ where: { restaurantId, userId } })
-      ])
-      if (!restaurant) throw new Error("Restaurant didn't exist!")
-      if (favorite) throw new Error('You have favorited this restaurant!')
-      await Favorite.create({ restaurantId, userId })
+  addFavorite: (req, res, next) => {
+    userServices.addFavorite(req, (err, data) => {
+      if (err) return next(err)
+      req.session.addedFavorite = data.addedFavorite
       res.redirect('back')
-    } catch (err) {
-      next(err)
-    }
+    })
   },
 
-  removeFavorite: async (req, res, next) => {
-    try {
-      const userId = req.user.id
-      const restaurantId = req.params.restaurantId
-      const favorite = await Favorite.findOne({ where: { restaurantId, userId } })
-      if (!favorite) throw new Error("You haven't favorited this restaurant")
-      await favorite.destroy()
+  removeFavorite: (req, res, next) => {
+    userServices.removeFavorite(req, (err, data) => {
+      if (err) return next(err)
+      req.session.removedFavorite = data.removedFavorite
       res.redirect('back')
-    } catch (err) {
-      next(err)
-    }
+    })
   },
 
-  addLike: async (req, res, next) => {
-    try {
-      const userId = req.user.id
-      const restaurantId = req.params.restaurantId
-      const [restaurant, like] = await Promise.all([
-        Restaurant.findByPk(restaurantId),
-        Like.findOne({ where: { restaurantId, userId } })
-      ])
-      if (!restaurant) throw new Error("Restaurant didn't exist!")
-      if (like) throw new Error('You have liked this restaurant!')
-      await Like.create({ restaurantId, userId })
+  addLike: (req, res, next) => {
+    userServices.addLike(req, (err, data) => {
+      if (err) return next(err)
+      req.session.addedLike = data.addedLike
       res.redirect('back')
-    } catch (err) {
-      next(err)
-    }
+    })
   },
 
-  removeLike: async (req, res, next) => {
-    try {
-      const userId = req.user.id
-      const restaurantId = req.params.restaurantId
-      const like = await Like.findOne({ where: { restaurantId, userId } })
-      if (!like) throw new Error("You haven't liked this restaurant")
-      await like.destroy()
+  removeLike: (req, res, next) => {
+    userServices.removeLike(req, (err, data) => {
+      if (err) return next(err)
+      req.session.removedLike = data.removedLike
       res.redirect('back')
-    } catch (err) {
-      next(err)
-    }
+    })
   },
 
-  getTopUsers: async (req, res, next) => {
-    try {
-      const { or, and, gt, lt } = Sequelize.Op
-      const users = await User.findAll({
-        nest: true,
-        include: [{ model: User, as: 'Followers' }],
-        attributes: {
-          include: [[Sequelize.fn('COUNT', Sequelize.col('Followers.id')), 'FollowersCounts']]
-        },
-        group: ['id'],
-        includeIgnoreAttributes: false,
-        order: [['FollowersCounts', 'DESC']]
-      })
-      const userData = users.map(user => {
-        const isFollowed = req.user.Followings.some(follow => follow.id === user.id)
-        return Object.assign(user.toJSON(), { isFollowed })
-      })
-      res.render('top-users', { users: userData })
-    } catch (err) {
-      next(err)
-    }
+  getTopUsers: (req, res, next) => {
+    userServices.getTopUsers(req, (err, data) => err ? next(err) : res.render('top-users', data))
   },
 
-  addFollowing: async (req, res, next) => {
-    try {
-      const userId = req.user?.id
-      const followingId = req.params.followingId
-      if (userId.toString() === followingId) throw new Error("You can't follow your self !")
-      const [user, followship] = await Promise.all([User.findByPk(followingId), Followship.findOne({ where: { followerId: userId, followingId } })])
-      if (!user) throw new Error("User didn't exist!")
-      if (followship) throw new Error('You are already following this user!')
-      await Followship.create({ followerId: userId, followingId })
+  addFollowing: (req, res, next) => {
+    userServices.addFollowing(req, (err, data) => {
+      if (err) return next(err)
+      req.session.addedFollowing = data.addedFollowing
       res.redirect('back')
-    } catch (err) {
-      next(err)
-    }
+    })
   },
 
-  removeFollowing: async (req, res, next) => {
-    try {
-      const userId = req.user?.id
-      const followingId = req.params.followingId
-      const followship = await Followship.findOne({ where: { followerId: userId, followingId } })
-      if (!followship) throw new Error("You haven't followed this user!")
-      await followship.destroy()
+  removeFollowing: (req, res, next) => {
+    userServices.removeFollowing(req, (err, data) => {
+      if (err) return next(err)
+      req.session.removedFollowing = data.removedFollowing
       res.redirect('back')
-    } catch (err) {
-      next(err)
-    }
+    })
   }
 }
 

@@ -15,10 +15,10 @@ passport.use(new JwtStrategy(jwtOpts, async (jwt_payload, cb) => {
   try {
     const user = await User.findByPk(jwt_payload.id, {
       include: [
-        { model: Restaurant, as: 'FavoritedRestaurants' },
-        { model: Restaurant, as: 'LikedRestaurants' },
-        { model: User, as: 'Followers' },
-        { model: User, as: 'Followings' }
+        { model: Restaurant, as: 'FavoritedRestaurants', attributes: ['id'], through: { attributes: [] } },
+        { model: Restaurant, as: 'LikedRestaurants', attributes: ['id'], through: { attributes: [] } },
+        { model: User, as: 'Followers', attributes: { exclude: ['password'] }, through: { attributes: [] } },
+        { model: User, as: 'Followings', attributes: { exclude: ['password'] }, through: { attributes: [] } }
       ]
     })
     return cb(null, user.toJSON())
@@ -46,11 +46,12 @@ passport.serializeUser((user, cb) => {
 passport.deserializeUser(async (id, cb) => {
   try {
     const user = await User.findByPk(id, {
+      nest: true,
       include: [
-        { model: Restaurant, as: 'FavoritedRestaurants' },
-        { model: Restaurant, as: 'LikedRestaurants' },
-        { model: User, as: 'Followers' },
-        { model: User, as: 'Followings' }
+        { model: Restaurant, as: 'FavoritedRestaurants', attributes: ['id'], through: { as: 'Favorite', attributes: [] } },
+        { model: Restaurant, as: 'LikedRestaurants', attributes: ['id'], through: { as: 'Like', attributes: [] } },
+        { model: User, as: 'Followers', attributes: { exclude: ['password'] }, through: { as: 'Followship', attributes: [] } },
+        { model: User, as: 'Followings', attributes: { exclude: ['password'] }, through: { as: 'Followship', attributes: [] } }
       ]
     })
     return cb(null, user.toJSON())
