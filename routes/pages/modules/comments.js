@@ -5,8 +5,8 @@ const commentController = require('./../../../controllers/pages/comment-controll
 
 const { authenticatedAdmin } = require('../../../middleware/auth.js')
 
-router.post('/', commentController.postComment)
-
 router.delete('/:id', authenticatedAdmin, commentController.deleteComment)
+
+router.post('/', commentController.postComment)
 
 module.exports = router

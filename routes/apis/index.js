@@ -9,6 +9,7 @@ const users  =require('./modules/users.js')
 const favorites = require('./modules/favorites.js')
 const likes = require('./modules/likes.js')
 const following = require('./modules/following.js')
+const comments = require('./modules/comments.js')
 
 const userController = require('../../controllers/apis/user-controller.js')
 
@@ -26,6 +27,8 @@ router.use('/favorites', jwtAuthenticated, favorites)
 router.use('/likes', jwtAuthenticated, likes)
 
 router.use('/following', jwtAuthenticated, following)
+
+router.use('/comments', jwtAuthenticated, comments)
 
 router.post('/signin', passport.authenticate('local', { session: false  }), userController.signIn)
 
