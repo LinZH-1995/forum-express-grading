@@ -85,7 +85,7 @@ const userServices = {
     try {
       const id = req.params.id
       const userId = req.user?.id
-      if (id !== userId.toString()) return callback(null, { redirect: `/users/${req.params.id }` })
+      if (id !== userId.toString()) return callback(null, { error_messages: "Can't get other user's edit page", redirect: `/users/${req.params.id }` })
       const user = await User.findByPk(id, { raw: true })
       if (!user) throw new Error("User didn't exist!")
       return callback(null, { user })
