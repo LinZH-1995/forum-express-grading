@@ -12,7 +12,7 @@ const commentServices = {
       ])
       if (!user || !restaurant) throw new Error("User or Restaurant didn't exist!")
       const postComment = await Comment.create({ text, userId, restaurantId })
-      return callback(null, { postComment, restaurantId })
+      return callback(null, { RestaurantId: postComment.restaurantId, commentId: postComment.id })
     } catch (err) {
       return callback(err, null)
     }
@@ -24,7 +24,7 @@ const commentServices = {
       const comment = await Comment.findByPk(id)
       if (!comment) throw new Error("Comment didn't exist!")
       const deleteComment = await comment.destroy()
-      return callback(null, { deleteComment, restaurantId: deleteComment.restaurantId })
+      return callback(null, { RestaurantId: deleteComment.restaurantId })
     } catch (err) {
       return callback(err, null)
     }

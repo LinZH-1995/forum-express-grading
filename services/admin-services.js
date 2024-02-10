@@ -1,25 +1,20 @@
-const { Restaurant, User, Category, Comment, Sequelize } = require('../models')
+const { Restaurant, User, Category, Comment, sequelize } = require('../models')
 
-const { localFileHandler, imgurFileHandler } = require('../helpers/file-helpers.js')
+const { localFileHandler } = require('../helpers/file-helpers.js')
 
 const adminServices = {
   getRestaurants: async (req, callback) => {
     try {
       const restaurants = await Restaurant.findAll({ raw: true, nest: true, include: [Category] })
-      restaurants.forEach(restaurant => {
-        if (!restaurant.Category) return restaurant.Category = { name: 'none' }
+      const restaurantsData = restaurants.map(restaurant => {
+        return {
+          ...restaurant,
+          opening_hours: restaurant.openingHours,
+          CategoryId: restaurant.categoryId
+        }
       })
-      // console.log(restaurants)
-      return callback(null, { restaurants })
-    } catch (err) {
-      return callback(err, null)
-    }
-  },
 
-  createRestaurant: async (req, callback) => {
-    try {
-      const categories = await Category.findAll({ raw: true, where: { id: { [Sequelize.Op.ne]: 0 } } })
-      return callback(null, { categories })
+      return callback(null, { restaurants: restaurantsData })
     } catch (err) {
       return callback(err, null)
     }
@@ -27,11 +22,20 @@ const adminServices = {
 
   postRestaurant: async (req, callback) => {
     try {
-      if (!req.body.name) throw new Error('Restaurant name is required!')
+      if (!req.body.name || !req.body.address || !req.body.categoryId) throw new Error('Restaurant name is required!')
       const { file } = req
-      // const filePath = await localFileHandler(file)
-      const filePath = await imgurFileHandler(file)
-      const newRestaurant = await Restaurant.create(Object.assign({ image: filePath || null }, req.body))
+      const filePath = await localFileHandler(file)
+
+      const newRestaurant = await Restaurant.create({
+        name: req.body.name,
+        categoryId: req.body.categoryId,
+        tel: req.body.tel,
+        address: req.body.address,
+        openingHours: req.body.opening_hours,
+        description: req.body.description,
+        image: filePath || null
+      })
+
       return callback(null, { newRestaurant })
     } catch (err) {
       return callback(err, null)
@@ -43,22 +47,11 @@ const adminServices = {
       const id = req.params.id
       const restaurant = await Restaurant.findByPk(id, { raw: true, nest: true, include: [Category] })
       if (!restaurant) throw new Error("Restaurant didn't exist!")
-      if (!restaurant.Category) {
-        restaurant.Category = { name: 'none' }
-      }
-      console.log(restaurant)
-      return callback(null, { restaurant })
-    } catch (err) {
-      return callback(err, null)
-    }
-  },
 
-  getEditRestaurant: async (req, callback) => {
-    try {
-      const id = req.params.id
-      const [restaurant, categories] = await Promise.all([Restaurant.findByPk(id, { raw: true }), Category.findAll({ raw: true, where: { id: { [Sequelize.Op.ne]: 0 } } })])
-      if (!restaurant) throw new Error("Restaurant didn't exist!")
-      return callback(null, { restaurant, categories })
+      restaurant.opening_hours = restaurant.openingHours
+      restaurant.CategoryId = restaurant.categoryId
+
+      return callback(null, { restaurant })
     } catch (err) {
       return callback(err, null)
     }
@@ -70,7 +63,7 @@ const adminServices = {
       const id = req.params.id
       const { file } = req
       // const filePath = await localFileHandler(file)
-      const filePath = await imgurFileHandler(file)
+      const filePath = await localFileHandler(file)
       const restaurant = await Restaurant.findByPk(id)
       if (!restaurant) throw new Error("Restaurant didn't exist!")
       const editRestaurant = await restaurant.update(Object.assign({ image: filePath || restaurant.image }, req.body))
@@ -85,7 +78,10 @@ const adminServices = {
       const id = req.params.id
       const [restaurant, comments] = await Promise.all([Restaurant.findByPk(id), Comment.findAll({ where: { restaurantId: id } })])
       if (!restaurant) throw new Error("Restaurant didn't exist!")
-      const deletedComments = await Promise.all(Array.from({ length: comments.length }, (e, i) => e = comments[i].destroy()))
+      const deletedComments = await Promise.all(Array.from({ length: comments.length }, (e, i) => {
+        e = comments[i].destroy()
+        return e
+      }))
       const deletedRestaurant = await restaurant.destroy()
       return callback(null, { deletedRestaurant, deletedComments })
     } catch (err) {
@@ -116,11 +112,10 @@ const adminServices = {
     }
   },
 
-  getCategories: async (req, callback) => {
+  getCategories: async (_req, callback) => {
     try {
-      const id = req.params.id === "0" || !req.params.id ? null : req.params.id
-      const [categories, category] = await Promise.all([Category.findAll({ raw: true, where: { id: { [Sequelize.Op.ne]: 0 } } }), id ? Category.findByPk(id, { raw: true }) : null])
-      return callback(null, { categories, category })
+      const categories = await Category.findAll({ raw: true })
+      return callback(null, { categories })
     } catch (err) {
       return callback(err, null)
     }
@@ -130,7 +125,7 @@ const adminServices = {
     try {
       if (!req.body.name) throw new Error('Category name is required!')
       const postCategory = await Category.create(Object.assign({}, req.body))
-      return callback(null, postCategory.toJSON())
+      return callback(null, { categoryId: postCategory.id })
     } catch (err) {
       return callback(err, null)
     }
@@ -142,8 +137,8 @@ const adminServices = {
       const id = req.params.id
       const category = await Category.findByPk(id)
       if (!category) throw new Error("Category doesn't exist!")
-      const putCategory = await category.update(Object.assign({}, req.body))
-      return callback(null, putCategory.toJSON())
+      const putCategory = await category.update({ name: req.body.name })
+      return callback(null, { categoryId: putCategory.id })
     } catch (err) {
       return callback(err, null)
     }
@@ -152,17 +147,23 @@ const adminServices = {
   deleteCategory: async (req, callback) => {
     try {
       const id = req.params.id
-      const [category, restaurants] = await Promise.all([
-        Category.findByPk(id),
-        Restaurant.findAll({ where: { categoryId: id } })
-      ])
-      if (!category) throw new Error("Category doesn't exist!")
-      let deleteCategory_restaurants
-      if (restaurants) {
-        deleteCategory_restaurants = await Promise.all(Array.from({ length: restaurants.length }, (e, i) => restaurants[i].update({ categoryId: 0 })))
+
+      // disable FOREIGN_KEY_CHECKS
+      await sequelize.query('SET FOREIGN_KEY_CHECKS=0')
+      const category = await Category.destroy({ where: { id } })
+
+      if (category === 0) {
+        // no data to destroy, enable FOREIGN_KEY_CHECKS
+        await sequelize.query('SET FOREIGN_KEY_CHECKS=1')
+        throw new Error("Category doesn't exist!")
+      } else if (category === 1) {
+        await Restaurant.update({ categoryId: 0 }, { where: { categoryId: id } })
       }
-      const deleteCategory = await category.destroy()
-      return callback(null, { deleteCategory, deleteCategory_restaurants })
+
+      // enable FOREIGN_KEY_CHECKS
+      await sequelize.query('SET FOREIGN_KEY_CHECKS=1')
+
+      return callback(null, { deleteCategoryCount: category })
     } catch (err) {
       return callback(err, null)
     }

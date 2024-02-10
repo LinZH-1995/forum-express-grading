@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs')
 
 const { User, Comment, Restaurant, Favorite, Like, Followship, Sequelize } = require('../models')
 
-const { localFileHandler, imgurFileHandler } = require('../helpers/file-helpers.js')
+const { localFileHandler } = require('../helpers/file-helpers.js')
 
 const userServices = {
   signUp: async (req, callback) => {
@@ -12,7 +12,7 @@ const userServices = {
       if (user) throw new Error('Email already exists!')
       const hash = await bcrypt.hash(req.body.password, 10)
       const newUser = await User.create(Object.assign(req.body, { password: hash }))
-      return callback(null, { newUser })
+      return callback(null, newUser.toJSON())
     } catch (err) {
       return callback(err, null)
     }
@@ -72,27 +72,14 @@ const userServices = {
     }
   },
 
-  editUser: async (req, callback) => {
-    try {
-      const id = req.params.id
-      const userId = req.user?.id
-      if (id !== userId.toString()) return callback(null, { error_messages: "Can't get other user's edit page", redirect: `/users/${req.params.id}` })
-      const user = await User.findByPk(id, { raw: true })
-      if (!user) throw new Error("User didn't exist!")
-      return callback(null, { user })
-    } catch (err) {
-      return callback(err, null)
-    }
-  },
-
   putUser: async (req, callback) => {
     try {
       if (!req.body.name) throw new Error('User name is required!')
       const id = req.params.id
       const { file } = req
-      const [filePath, user] = await Promise.all([imgurFileHandler(file), User.findByPk(id)])
+      const [filePath, user] = await Promise.all([localFileHandler(file), User.findByPk(id)])
       if (!user) throw new Error("User didn't exist!")
-      const editUser = await user.update(Object.assign({ image: filePath || user.image }, req.body))
+      const editUser = await user.update({ image: filePath || user.image, name: req.body.name })
       return callback(null, { editUser, id })
     } catch (err) {
       return callback(err, null)
@@ -165,11 +152,12 @@ const userServices = {
         nest: true,
         include: [{ model: User, as: 'Followers' }],
         attributes: {
-          include: [[Sequelize.fn('COUNT', Sequelize.col('Followers.id')), 'FollowersCounts']]
+          include: [[Sequelize.fn('COUNT', Sequelize.col('Followers.id')), 'FollowerCount']],
+          exclude: ['password']
         },
         group: ['id'],
         includeIgnoreAttributes: false,
-        order: [['FollowersCounts', 'DESC']]
+        order: [['FollowerCount', 'DESC']]
       })
       const userData = users.map(user => {
         const isFollowed = req.user.Followings.some(follow => follow.id === user.id)

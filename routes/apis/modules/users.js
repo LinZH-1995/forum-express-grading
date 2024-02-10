@@ -7,8 +7,6 @@ const upload = require('../../../middleware/multer.js')
 
 router.get('/top', userController.getTopUsers)
 
-router.get('/:id/edit', userController.editUser)
-
 router.put('/:id', upload.single('image'), userController.putUser)
 
 router.get('/:id', userController.getUser)

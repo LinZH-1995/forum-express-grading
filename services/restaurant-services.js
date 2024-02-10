@@ -20,7 +20,17 @@ const restaurantServices = {
         rest.isFavorited = userFavorites.includes(rest.id)
         rest.isLiked = userLikes.includes(rest.id)
       })
-      return callback(null, { restaurants: restaurants.rows, categories, categoryId, pagination: getPagination(restaurants.count, page, limit) })
+      const pagination = getPagination(restaurants.count, page, limit)
+
+      return callback(null, {
+        restaurants: restaurants.rows,
+        categories,
+        categoryId,
+        page: pagination.currentPage,
+        totalPage: pagination.pages,
+        prev: pagination.prev,
+        next: pagination.next
+      })
     } catch (err) {
       return callback(err, null)
     }
@@ -34,7 +44,15 @@ const restaurantServices = {
       await restaurant.increment('viewCounts')
       const isFavorited = req.user?.FavoritedRestaurants.some(favo => favo.id === restaurant.id)
       const isLiked = req.user?.LikedRestaurants.some(like => like.id === restaurant.id)
-      return callback(null, { restaurant: restaurant.toJSON(), isFavorited, isLiked })
+      const rawRestaurant = restaurant.toJSON()
+      rawRestaurant.Comments = rawRestaurant.Comments.map(comment => {
+        return Object.assign(comment, { UserId: comment.userId, RestaurantId: comment.restaurantId })
+      })
+      return callback(null, {
+        restaurant: { ...rawRestaurant, CategoryId: restaurant.categoryId },
+        isFavorited,
+        isLiked
+      })
     } catch (err) {
       return callback(err, null)
     }
@@ -45,7 +63,14 @@ const restaurantServices = {
       const id = req.params.id
       const restaurant = await Restaurant.findByPk(id, { nest: true, include: [Category, Comment] })
       if (!restaurant) throw new Error("Restaurant didn't exist!")
-      return callback(null, { restaurant: restaurant.toJSON() })
+      const rawRestaurant = restaurant.toJSON()
+      rawRestaurant.opening_hours = rawRestaurant.openingHours
+      rawRestaurant.CategoryId = rawRestaurant.categoryId
+      rawRestaurant.Comments = rawRestaurant.Comments.map(comment => {
+        return { ...comment, UserId: comment.userId, RestaurantId: comment.restaurantId }
+      })
+
+      return callback(null, { restaurant: rawRestaurant })
     } catch (err) {
       return callback(err, null)
     }
@@ -57,7 +82,20 @@ const restaurantServices = {
         Restaurant.findAll({ raw: true, nest: true, limit: 10, order: [['createdAt', 'DESC']], include: [Category] }),
         Comment.findAll({ raw: true, nest: true, limit: 10, order: [['createdAt', 'DESC']], include: [{ model: User, attributes: { exclude: ['password'] } }, Restaurant] })
       ])
-      restaurants.forEach(rest => rest.description = rest.description.substring(0, 30))
+
+      restaurants.forEach(rest => {
+        rest.description = rest.description.substring(0, 50)
+        rest.opening_hours = rest.openingHours
+        rest.CategoryId = rest.categoryId
+      })
+
+      comments.forEach(comment => {
+        comment.UserId = comment.userId
+        comment.RestaurantId = comment.restaurantId
+        comment.Restaurant.opening_hours = comment.Restaurant.openingHours
+        comment.Restaurant.CategoryId = comment.Restaurant.categoryId
+      })
+
       return callback(null, { restaurants, comments })
     } catch (err) {
       return callback(err, null)
@@ -69,14 +107,18 @@ const restaurantServices = {
       const restaurants = await Restaurant.findAll({
         nest: true,
         include: [{ model: User, as: 'FavoritedUsers', attributes: [], through: { attributes: [] } }],
-        attributes: ['id', 'image', 'name', 'description', [Sequelize.fn('COUNT', Sequelize.col('FavoritedUsers.id')), 'favoritedCounts']],
+        attributes: {
+          include: [[Sequelize.fn('COUNT', Sequelize.col('FavoritedUsers.id')), 'FavoriteCount']]
+        },
         group: ['id'],
-        order: [['favoritedCounts', 'DESC']]
+        order: [['FavoriteCount', 'DESC']]
       })
-      const restaurantsData = restaurants.map(restaurant => {
-        const description = restaurant.description.substring(0, 300)
+      const restaurantsData = restaurants.map(rest => {
+        const restaurant = rest.toJSON()
+        const description = restaurant.description.substring(0, 200)
         const isFavorited = req.user?.FavoritedRestaurants.some(rest => restaurant.id === rest.id)
-        return Object.assign(restaurant.toJSON(), { description, isFavorited })
+        const CategoryId = restaurant.categoryId
+        return { ...restaurant, description, isFavorited, CategoryId, opening_hours: restaurant.openingHours }
       }).slice(0, 10)
       return callback(null, { restaurants: restaurantsData })
     } catch (err) {
