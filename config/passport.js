@@ -11,9 +11,9 @@ const jwtOpts = {
   secretOrKey: process.env.JWT_SECRET
 }
 
-passport.use(new JwtStrategy(jwtOpts, async (jwt_payload, cb) => {
+passport.use(new JwtStrategy(jwtOpts, async (jwtPayload, cb) => {
   try {
-    const user = await User.findByPk(jwt_payload.id, {
+    const user = await User.findByPk(jwtPayload.id, {
       include: [
         { model: Restaurant, as: 'FavoritedRestaurants', attributes: ['id'], through: { attributes: [] } },
         { model: Restaurant, as: 'LikedRestaurants', attributes: ['id'], through: { attributes: [] } },

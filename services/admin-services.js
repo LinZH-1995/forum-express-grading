@@ -83,7 +83,7 @@ const adminServices = {
   deleteRestaurant: async (req, callback) => {
     try {
       const id = req.params.id
-      const [restaurant, comments] = await Promise.all([Restaurant.findByPk(id), Comment.findAll({ where: { restaurantId: id }})])
+      const [restaurant, comments] = await Promise.all([Restaurant.findByPk(id), Comment.findAll({ where: { restaurantId: id } })])
       if (!restaurant) throw new Error("Restaurant didn't exist!")
       const deletedComments = await Promise.all(Array.from({ length: comments.length }, (e, i) => e = comments[i].destroy()))
       const deletedRestaurant = await restaurant.destroy()
@@ -108,7 +108,7 @@ const adminServices = {
       const user = await User.findByPk(id)
       if (!user) throw new Error("User didn't exist!")
       if (user.email === 'root@example.com') return callback(null, { error_messages: '禁止變更 root 權限', redirect: 'back' })
-      const isAdmin = !user.isAdmin  // user.isAdmin ? false : true || user.isAdmin === false
+      const isAdmin = !user.isAdmin // user.isAdmin ? false : true || user.isAdmin === false
       const patchedUser = await user.update({ isAdmin })
       return callback(null, { patchedUser })
     } catch (err) {
@@ -130,7 +130,7 @@ const adminServices = {
     try {
       if (!req.body.name) throw new Error('Category name is required!')
       const postCategory = await Category.create(Object.assign({}, req.body))
-      return callback(null, { postCategory })
+      return callback(null, postCategory.toJSON())
     } catch (err) {
       return callback(err, null)
     }
@@ -143,7 +143,7 @@ const adminServices = {
       const category = await Category.findByPk(id)
       if (!category) throw new Error("Category doesn't exist!")
       const putCategory = await category.update(Object.assign({}, req.body))
-      return callback(null, { putCategory })
+      return callback(null, putCategory.toJSON())
     } catch (err) {
       return callback(err, null)
     }

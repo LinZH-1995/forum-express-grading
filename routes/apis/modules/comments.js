@@ -3,7 +3,7 @@ const router = express.Router()
 
 const commentController = require('./../../../controllers/apis/comment-controller.js')
 
-const { jwtAuthenticated, jwtAuthenticatedAdmin } = require('../../../middleware/apiAuth.js')
+const { jwtAuthenticatedAdmin } = require('../../../middleware/apiAuth.js')
 
 router.delete('/:id', jwtAuthenticatedAdmin, commentController.deleteComment)
 

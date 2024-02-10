@@ -20,20 +20,20 @@ const userServices = {
 
   getUser: async (req, callback) => {
     try {
-      // SELECT 
+      // SELECT
       // Comment.restaurant_id AS restaurantId,
       // MAX(Comment.created_at ) AS createdAt,
       // Restaurant.image AS `Restaurant.image`,
       // Restaurant.id AS `Restaurant.id`
-      // FROM Comments AS Comment 
-      // LEFT JOIN Restaurants AS Restaurant 
-      // ON Comment.restaurant_id = Restaurant.id 
+      // FROM Comments AS Comment
+      // LEFT JOIN Restaurants AS Restaurant
+      // ON Comment.restaurant_id = Restaurant.id
       // WHERE Comment.user_id IN (20)
-      // GROUP BY restaurantId 
-      // ORDER BY createdAt DESC; 
-      //--> query Comments and filter the same comments(restaurantId) by GROUP BY
-      //--> query the MAX createdAt of comment to find the latest comment
-      //--> get the finally data ORDER BY ceartedAt DESC in the end
+      // GROUP BY restaurantId
+      // ORDER BY createdAt DESC;
+      // --> query Comments and filter the same comments(restaurantId) by GROUP BY
+      // --> query the MAX createdAt of comment to find the latest comment
+      // --> get the finally data ORDER BY ceartedAt DESC in the end
       const id = req.params.id
       const [user, comments] = await Promise.all([
         User.findByPk(id, {
@@ -41,7 +41,7 @@ const userServices = {
           include: [
             { model: Restaurant, as: 'FavoritedRestaurants', attributes: ['image', 'id'], through: { attributes: [] } },
             { model: User, as: 'Followings', attributes: ['image', 'id'], through: { attributes: [] } },
-            { model: User, as: 'Followers', attributes: ['image', 'id'], through: { attributes: [] } },
+            { model: User, as: 'Followers', attributes: ['image', 'id'], through: { attributes: [] } }
           ],
           order: [
             [{ model: Restaurant, as: 'FavoritedRestaurants' }, Favorite, 'createdAt', 'DESC'],
@@ -63,18 +63,9 @@ const userServices = {
       ])
       if (!user) throw new Error("User didn't exist!")
       const userData = user.toJSON()
-      
       return callback(null, {
-        user: userData,
-        userOfLogin: req.user,
-        commentCounts: comments.count.length,
-        commented_restaurants: comments.rows,
-        FavoritedRestaurants: userData.FavoritedRestaurants.slice(0, 10),
-        FavoritedRestaurantsCounts: userData.FavoritedRestaurants.length,
-        Followings: userData.Followings.slice(0, 10),
-        FollowingsCounts: userData.Followings.length,
-        Followers: userData.Followers.slice(0, 10),
-        FollowersCounts: userData.Followers.length
+        profile: { ...userData, Comments: comments.rows },
+        isFollowed: req.user.Followings.some(e => e.id === userData.id)
       })
     } catch (err) {
       return callback(err, null)
@@ -85,7 +76,7 @@ const userServices = {
     try {
       const id = req.params.id
       const userId = req.user?.id
-      if (id !== userId.toString()) return callback(null, { error_messages: "Can't get other user's edit page", redirect: `/users/${req.params.id }` })
+      if (id !== userId.toString()) return callback(null, { error_messages: "Can't get other user's edit page", redirect: `/users/${req.params.id}` })
       const user = await User.findByPk(id, { raw: true })
       if (!user) throw new Error("User didn't exist!")
       return callback(null, { user })
@@ -118,7 +109,7 @@ const userServices = {
       ])
       if (!restaurant) throw new Error("Restaurant didn't exist!")
       if (favorite) throw new Error('You have favorited this restaurant!')
-      const addedFavorite =  await Favorite.create({ restaurantId, userId })
+      const addedFavorite = await Favorite.create({ restaurantId, userId })
       return callback(null, { addedFavorite })
     } catch (err) {
       return callback(err, null)
@@ -131,7 +122,7 @@ const userServices = {
       const restaurantId = req.params.restaurantId
       const favorite = await Favorite.findOne({ where: { restaurantId, userId } })
       if (!favorite) throw new Error("You haven't favorited this restaurant")
-      const removedFavorite =  await favorite.destroy()
+      const removedFavorite = await favorite.destroy()
       return callback(null, { removedFavorite })
     } catch (err) {
       return callback(err, null)
@@ -213,6 +204,16 @@ const userServices = {
       if (!followship) throw new Error("You haven't followed this user!")
       const removedFollowing = await followship.destroy()
       return callback(null, { removedFollowing })
+    } catch (err) {
+      return callback(err, null)
+    }
+  },
+
+  getCurrentUser: async (req, callback) => {
+    try {
+      const user = req.user
+      delete user.password
+      return callback(null, user)
     } catch (err) {
       return callback(err, null)
     }

@@ -85,4 +85,4 @@ const restaurantServices = {
   }
 }
 
-module.exports = restaurantServices 
+module.exports = restaurantServices

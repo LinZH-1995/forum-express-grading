@@ -3,6 +3,8 @@ const exphbs = require('express-handlebars')
 const expSession = require('express-session')
 const connectFlash = require('connect-flash')
 const methodOverride = require('method-override')
+const helmet = require('helmet')
+const cors = require('cors')
 const path = require('path')
 
 if (process.env.NODE_ENV !== 'production') {
@@ -15,10 +17,20 @@ const { getUser } = require('./helpers/auth-helpers.js')
 
 const app = express()
 const port = process.env.PORT || 3000
+const corsOptions = {
+  origin: [
+    'http://localhost:3030',
+    'https://linzh-1995.github.io'
+  ],
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  allowedHeaders: ['Content-Type', 'Authorization']
+}
 
 app.engine('hbs', exphbs({ extname: '.hbs', helpers: require('./helpers/hbs-helpers.js') }))
 app.set('view engine', 'hbs')
 
+app.use(helmet())
+app.use(cors(corsOptions))
 app.use('/upload', express.static(path.join(__dirname, 'upload')))
 app.use(methodOverride('_method'))
 app.use(express.urlencoded({ extended: true }))
