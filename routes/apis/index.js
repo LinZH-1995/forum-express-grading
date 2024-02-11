@@ -13,7 +13,7 @@ const comments = require('./modules/comments.js')
 
 const userController = require('../../controllers/apis/user-controller.js')
 
-const { apiErrorHandler } = require('../../middleware/error-handler.js')
+const { apiErrorHandler, errorLoggerHandler } = require('../../middleware/error-handler.js')
 const { jwtAuthenticated, jwtAuthenticatedAdmin } = require('../../middleware/apiAuth.js')
 
 router.use('/admin', jwtAuthenticated, jwtAuthenticatedAdmin, admin)
@@ -37,5 +37,7 @@ router.post('/signin', passport.authenticate('local', { session: false }), userC
 router.post('/signup', userController.signUp)
 
 router.use(apiErrorHandler)
+
+router.use(errorLoggerHandler)
 
 module.exports = router

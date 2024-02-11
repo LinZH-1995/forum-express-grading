@@ -1,3 +1,5 @@
+const { formatHTTPLoggerResponse, logger } = require('../logger/winston')
+
 module.exports = {
   generalErrorHandler: (err, req, res, next) => {
     if (err instanceof Error) {
@@ -15,6 +17,12 @@ module.exports = {
     } else {
       res.status(500).json({ status: 'error', message: `${err}` })
     }
+    next(err)
+  },
+
+  errorLoggerHandler: (err, req, res, next) => {
+    const data = formatHTTPLoggerResponse(err, req, res, null)
+    logger.error('Error Data', data)
     next(err)
   }
 }
