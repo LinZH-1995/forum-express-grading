@@ -3,6 +3,7 @@
 ## Docker (recommend)
 
 ### Put file in directory like below
+```
 myapp
 ├── docker-compose.yml 
 ├── backend
@@ -11,6 +12,7 @@ myapp
 └── frontend
     ├── Dockerfile # frontend dockerfile
     └── files      # git clone https://github.com/LinZH-1995/Vue2-practice.git
+```
 
 ```sh
 git clone https://github.com/LinZH-1995/forum-express-grading.git myapp/backend
