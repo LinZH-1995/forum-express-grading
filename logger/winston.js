@@ -99,10 +99,9 @@ function requestLoggerHandler (req, _res, next) {
   next()
 }
 
-function responseLoggerHandler (_req, res, responseBody, next) {
+function responseLoggerHandler (_req, res, responseBody, _next) {
   const data = formatHTTPLoggerResponse(null, null, res, responseBody)
   logger.info('Request Data', data)
-  next()
 }
 
 transport.on('error', error => {

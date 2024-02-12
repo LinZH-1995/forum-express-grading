@@ -6,7 +6,9 @@
     "start": "node app.js",
     "dev": "nodemon app.js",
     "lint": "eslint \"**/*.js\" --fix",
-    "test": "mocha tests --exit --recursive --timeout 5000"
+    "test": "mocha tests --exit --recursive --timeout 5000",
+    "migrate-db": "npx sequelize db:migrate --env docker",
+    "seed-db": "npx sequelize db:seed:all --env docker"
   },
   "repository": {
     "type": "git",

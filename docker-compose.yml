@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+
+  #services name
+  mysqldb:
+    image: mysql
+
+    #container name
+    container_name: mysqldb
+    restart: unless-stopped
+    environment:
+      - MYSQL_DATABASE=docker_test_db
+      - MYSQL_ROOT_PASSWORD=password
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: "mysql -uroot -p$$MYSQL_ROOT_PASSWORD  -e 'SHOW databases'"
+      #The health check will first run interval seconds after the container is started, and then again interval seconds after each previous check completes.
+      interval: 1m30s
+      timeout: 30s
+      retries: 3
+      start_period: 30s
+
+  backend:
+    container_name: backend
+    depends_on:
+      mysqldb:
+        condition: service_started
+    restart: unless-stopped
+    build: ./backend
+    environment:
+      - NODE_ENV=docker
+      - JWT_SECRET=secret
+    ports:
+      - "3000:3000"
+
+  frontend:
+    container_name: frontend
+    depends_on:
+      - backend
+      - mysqldb
+    build: ./frontend
+    environment:
+      - NODE_ENV=docker
+    ports:
+      - "3030:3030"

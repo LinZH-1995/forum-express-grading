@@ -19,5 +19,13 @@
     "host": "127.0.0.1",
     "dialect": "mysql",
     "logging": false
+  },
+  "docker": {
+    "username": "root",
+    "password": "password",
+    "database": "docker_test_db",
+    "host": "mysqldb",
+    "port": "3306",
+    "dialect": "mysql"
   }
 }
