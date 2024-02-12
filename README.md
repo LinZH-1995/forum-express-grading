@@ -1,52 +1,63 @@
-# README
+# Usage
 
-1. Fork
-2. git clone
+## Docker (recommend)
 
-## 初始化
-### Initialize
+### Put file in directory like below
+myapp
+├── docker-compose.yml 
+├── backend
+│   ├── Dockerfile # backend dockerfile
+│   └── files      # git clone https://github.com/LinZH-1995/forum-express-grading.git
+└── frontend
+    ├── Dockerfile # frontend dockerfile
+    └── files      # git clone https://github.com/LinZH-1995/Vue2-practice.git
+
+```sh
+git clone https://github.com/LinZH-1995/forum-express-grading.git myapp/backend
 ```
-git remote add upstream https://github.com/ALPHACamp/forum-express-grading.git  # 建立上游連線
+```sh
+git clone https://github.com/LinZH-1995/Vue2-practice.git myapp/frontend
+```
+```sh
+cd myapp/backend
+```
+```sh
+mv docker-compose.yml ../
+```
+```sh
+cd ..
+```
+```sh
+docker-compose build --no-cache
+```
+```sh
+docker-compose up -d
+```
+```sh
+http://localhost:3030
+```
+
+## Local (frontend see https://github.com/LinZH-1995/Vue2-practice?tab=readme-ov-file#local )
+```sh
+git clone https://github.com/LinZH-1995/forum-express-grading.git
+```
+```sh
+cd forum-express-grading
+```
+```sh
 npm install
 ```
-
-### 設定資料庫
-需要與 config/config.json 一致
-
-```
-create database forum;
+```sh
+npm run dev
 ```
 
-### 執行測試
-```
-npm run test
-```
-
-## 下載作業規格
-以 R01 為例
-
-```
-git checkout -b R01           # 開新分支
-git merge origin/R01-test     # 下載作業規格
-npm run test                  # 直到綠燈全亮
-
-git add .
-git commit -m "...."
-```
-
-## 繳交作業
-
-```
-git push origin R01           # 上傳本地進度
-```
-
-接著改成到 GitHub 來發 PR。
-
-## 共用帳號
-請一律設定下面 2 組帳號以利驗收：
-* 第一組帳號有 admin 權限：
+## Test account in seed
+* admin ：
   * email: root@example.com
   * password: 12345678
-* 第二組帳號沒有 admin 權限：
+* user1：
   * email: user1@example.com
+  * password: 12345678
+* user2：
+  * email: user2@example.com
   * password: 12345678
